@@ -3238,6 +3238,11 @@ public final class Settings {
          */
         public static final String WIFI_AUTO_CONNECT_TYPE = "wifi_auto_connect_type";
 
+        /**
+         * Whether newly installed apps should run with privacy guard by default
+         * @hide
+         */
+        public static final String PRIVACY_GUARD_DEFAULT = "privacy_guard_default";
 
         /**
          * Settings to backup. This is here so that it's in the same place as the settings
@@ -8187,6 +8192,7 @@ public final class Settings {
          * The order in which the bookmark should be displayed
          * <P>Type: INTEGER</P>
          */
+
         public static final String ORDERING = "ordering";
 
         private static final String[] sIntentProjection = { INTENT };
