@@ -128,4 +128,12 @@ interface IImsCallSessionListener {
      */
     void callSessionSuppServiceReceived(in IImsCallSession session,
          in ImsSuppServiceNotification suppSrvNotification);
+
+    /**
+     * Notifies of a change to the multiparty state for this {@code ImsCallSession}.
+     *
+     * @param session The call session.
+     * @param isMultiParty {@code true} if the session became multiparty, {@code false} otherwise.
+     */
+    void callSessionMultipartyStateChanged(in IImsCallSession session, in boolean isMultiParty);
 }
