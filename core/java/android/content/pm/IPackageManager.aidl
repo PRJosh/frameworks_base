@@ -456,10 +456,4 @@ interface IPackageManager {
     KeySet getSigningKeySet(String packageName);
     boolean isPackageSignedByKeySet(String packageName, in KeySet ks);
     boolean isPackageSignedByKeySetExactly(String packageName, in KeySet ks);
-
-    /** Package interception */
-    void setPreLaunchCheckActivity(in ComponentName componentName);
-    void addPreLaunchCheckPackage(String packageName);
-    void removePreLaunchCheckPackage(String packageName);
-    void clearPreLaunchCheckPackages();
 }
