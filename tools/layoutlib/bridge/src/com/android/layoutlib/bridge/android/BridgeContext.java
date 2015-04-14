@@ -20,8 +20,8 @@ import android.os.IBinder;
 import com.android.annotations.Nullable;
 import com.android.ide.common.rendering.api.AssetRepository;
 import com.android.ide.common.rendering.api.ILayoutPullParser;
-import com.android.ide.common.rendering.api.IProjectCallback;
 import com.android.ide.common.rendering.api.LayoutLog;
+import com.android.ide.common.rendering.api.LayoutlibCallback;
 import com.android.ide.common.rendering.api.RenderResources;
 import com.android.ide.common.rendering.api.ResourceReference;
 import com.android.ide.common.rendering.api.ResourceValue;
@@ -112,7 +112,7 @@ public final class BridgeContext extends Context {
     private final RenderResources mRenderResources;
     private final Configuration mConfig;
     private final ApplicationInfo mApplicationInfo;
-    private final IProjectCallback mProjectCallback;
+    private final LayoutlibCallback mLayoutlibCallback;
     private final WindowManager mWindowManager;
     private final DisplayManager mDisplayManager;
 
@@ -146,13 +146,13 @@ public final class BridgeContext extends Context {
     public BridgeContext(Object projectKey, DisplayMetrics metrics,
             RenderResources renderResources,
             AssetRepository assets,
-            IProjectCallback projectCallback,
+            LayoutlibCallback layoutlibCallback,
             Configuration config,
             int targetSdkVersion,
             boolean hasRtlSupport) {
         mProjectKey = projectKey;
         mMetrics = metrics;
-        mProjectCallback = projectCallback;
+        mLayoutlibCallback = layoutlibCallback;
 
         mRenderResources = renderResources;
         mConfig = config;
@@ -171,7 +171,7 @@ public final class BridgeContext extends Context {
 
     /**
      * Initializes the {@link Resources} singleton to be linked to this {@link Context}, its
-     * {@link DisplayMetrics}, {@link Configuration}, and {@link IProjectCallback}.
+     * {@link DisplayMetrics}, {@link Configuration}, and {@link LayoutlibCallback}.
      *
      * @see #disposeResources()
      */
@@ -183,7 +183,7 @@ public final class BridgeContext extends Context {
                 assetManager,
                 mMetrics,
                 mConfig,
-                mProjectCallback);
+                mLayoutlibCallback);
         mTheme = mSystemResources.newTheme();
     }
 
@@ -222,8 +222,8 @@ public final class BridgeContext extends Context {
         return mMetrics;
     }
 
-    public IProjectCallback getProjectCallback() {
-        return mProjectCallback;
+    public LayoutlibCallback getLayoutlibCallback() {
+        return mLayoutlibCallback;
     }
 
     public RenderResources getRenderResources() {
@@ -282,7 +282,7 @@ public final class BridgeContext extends Context {
         Pair<ResourceType, String> resourceInfo = Bridge.resolveResourceId(resid);
         boolean isFrameworkRes = true;
         if (resourceInfo == null) {
-            resourceInfo = mProjectCallback.resolveResourceId(resid);
+            resourceInfo = mLayoutlibCallback.resolveResourceId(resid);
             isFrameworkRes = false;
         }
 
@@ -338,8 +338,8 @@ public final class BridgeContext extends Context {
         }
 
         // didn't find a match in the framework? look in the project.
-        if (mProjectCallback != null) {
-            resourceInfo = mProjectCallback.resolveResourceId(id);
+        if (mLayoutlibCallback != null) {
+            resourceInfo = mLayoutlibCallback.resolveResourceId(id);
 
             if (resourceInfo != null) {
                 return new ResourceReference(resourceInfo.getSecond(), false);
@@ -437,9 +437,9 @@ public final class BridgeContext extends Context {
     private ILayoutPullParser getParser(ResourceReference resource) {
         ILayoutPullParser parser;
         if (resource instanceof ResourceValue) {
-            parser = mProjectCallback.getParser((ResourceValue) resource);
+            parser = mLayoutlibCallback.getParser((ResourceValue) resource);
         } else {
-            parser = mProjectCallback.getParser(resource.getName());
+            parser = mLayoutlibCallback.getParser(resource.getName());
         }
         return parser;
     }
@@ -656,7 +656,7 @@ public final class BridgeContext extends Context {
             boolean isFrameworkRes = true;
             Pair<ResourceType, String> value = Bridge.resolveResourceId(defStyleRes);
             if (value == null) {
-                value = mProjectCallback.resolveResourceId(defStyleRes);
+                value = mLayoutlibCallback.resolveResourceId(defStyleRes);
                 isFrameworkRes = false;
             }
 
@@ -694,7 +694,7 @@ public final class BridgeContext extends Context {
             }
         }
 
-        String appNamespace = mProjectCallback.getNamespace();
+        String appNamespace = mLayoutlibCallback.getNamespace();
 
         if (attributeList != null) {
             for (int index = 0 ; index < attributeList.size() ; index++) {
@@ -837,7 +837,7 @@ public final class BridgeContext extends Context {
             if (resolvedResource != null) {
                 isFramework = true;
             } else {
-                resolvedResource = mProjectCallback.resolveResourceId(attr);
+                resolvedResource = mLayoutlibCallback.resolveResourceId(attr);
             }
 
             if (resolvedResource != null) {
@@ -863,7 +863,7 @@ public final class BridgeContext extends Context {
             return Pair.of(info.getSecond(), Boolean.TRUE);
         }
 
-        info = mProjectCallback.resolveResourceId(attr);
+        info = mLayoutlibCallback.resolveResourceId(attr);
         if (info != null) {
             return Pair.of(info.getSecond(), Boolean.FALSE);
         }
@@ -915,8 +915,8 @@ public final class BridgeContext extends Context {
         // getResourceId creates a new resource id if an existing resource id isn't found. So, we
         // check for the existence of the resource before calling it.
         if (getRenderResources().getProjectResource(resType, resName) != null) {
-            if (mProjectCallback != null) {
-                Integer value = mProjectCallback.getResourceId(resType, resName);
+            if (mLayoutlibCallback != null) {
+                Integer value = mLayoutlibCallback.getResourceId(resType, resName);
                 if (value != null) {
                     return value;
                 }
