@@ -14570,7 +14570,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
             }
         }
 
-        onDetachedFromWindow();
+        onDetachedFromWindows();
         onDetachedFromWindowInternal();
 
         InputMethodManager imm = InputMethodManager.peekInstance();
