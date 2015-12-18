@@ -137,18 +137,6 @@ public interface BluetoothProfile {
     public static final int HID_DEVICE = 17;
 
     /**
-     * HID Profile
-     * @hide
-     */
-    public static final int HID = 18;
-
-    /**
-     * HDP Profile
-     * @hide
-     */
-    public static final int HDP = 19;
-
-    /**
      * DUN
      * @hide
      */
