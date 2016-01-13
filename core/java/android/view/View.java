@@ -3482,9 +3482,6 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
 
     private int[] mDrawableState = null;
 
-    /** Whether draw() is currently being called. */
-    private boolean mInDraw = false;
-
     ViewOutlineProvider mOutlineProvider = ViewOutlineProvider.BACKGROUND;
 
     /**
@@ -16165,8 +16162,6 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      */
     @CallSuper
     public void draw(Canvas canvas) {
-        mInDraw = true;
-
         final int privateFlags = mPrivateFlags;
         final boolean dirtyOpaque = (privateFlags & PFLAG_DIRTY_MASK) == PFLAG_DIRTY_OPAQUE &&
                 (mAttachInfo == null || !mAttachInfo.mIgnoreDirtyState);
@@ -16211,7 +16206,6 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
             onDrawForeground(canvas);
 
             // we're done...
-            mInDraw = false;
             return;
         }
 
@@ -16359,8 +16353,6 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
 
         // Step 6, draw decorations (foreground, scrollbars)
         onDrawForeground(canvas);
-
-        mInDraw = false;
     }
 
     /**
@@ -16805,8 +16797,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
      */
     @Override
     public void invalidateDrawable(@NonNull Drawable drawable) {
-        // Don't invalidate if a drawable changes during drawing.
-        if (verifyDrawable(drawable) && !mInDraw) {
+        if (verifyDrawable(drawable)) {
             final Rect dirty = drawable.getDirtyBounds();
             final int scrollX = mScrollX;
             final int scrollY = mScrollY;
