@@ -2436,8 +2436,6 @@
     <string name="config_rat_3g" translatable="false">3G</string>
     <string name="config_rat_4g" translatable="false">4G</string>
 
-    <bool name="config_enableDataSwitch">false</bool>
-
     <!-- Whether to use TMO MCC MNC roaming setting -->
     <bool name="config_regional_mcc_mnc_roaming_setting">false</bool>
 
