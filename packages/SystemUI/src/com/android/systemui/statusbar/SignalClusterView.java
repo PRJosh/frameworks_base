@@ -667,10 +667,13 @@ public class SignalClusterView
 
                 TelephonyManager tm =
                         (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
-                if (tm != null && tm.isNetworkRoaming(mSubId) &&
-                        (mContext.getResources().getBoolean(R.bool.show_roaming_and_network_icons))) {
-                    mRoaming.setImageDrawable(getContext().getResources().getDrawable(
-                            R.drawable.stat_sys_data_fully_connected_roam));
+                if (tm != null && tm.isNetworkRoaming(mSubId)) {
+                   if (!(mContext.getResources().getBoolean(R.bool.config_data_signal_control))) {
+                       mRoaming.setImageDrawable(getContext().getResources().getDrawable(
+                               R.drawable.stat_sys_data_fully_connected_roam));
+                   } else {
+                       mRoaming.setImageDrawable(null);
+                   }
                 } else {
                     mRoaming.setImageDrawable(null);
                 }
