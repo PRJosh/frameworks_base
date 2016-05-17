@@ -16,14 +16,10 @@
 package com.android.systemui.statusbar.policy;
 
 import android.content.Context;
-import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.res.Resources;
-import android.database.ContentObserver;
 import android.net.NetworkCapabilities;
-import android.os.Handler;
 import android.os.Looper;
-import android.provider.Settings;
 import android.telephony.CellLocation;
 import android.telephony.gsm.GsmCellLocation;
 import android.telephony.PhoneStateListener;
@@ -38,7 +34,6 @@ import android.util.Log;
 import android.util.SparseArray;
 
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.internal.telephony.CarrierAppUtils;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.internal.telephony.cdma.EriInfo;
 import com.android.systemui.R;
@@ -70,7 +65,6 @@ public class MobileSignalController extends SignalController<
     private String mLastDataSpn;
     private boolean mLastShowPlmn;
     private String mLastPlmn;
-    private boolean mIsDataSignalControlEnabled;
 
     // Since some pieces of the phone state are interdependent we store it locally,
     // this could potentially become part of MobileState for simplification/complication
@@ -88,10 +82,7 @@ public class MobileSignalController extends SignalController<
     private final int STATUS_BAR_STYLE_CDMA_1X_COMBINED = 1;
     private final int STATUS_BAR_STYLE_DEFAULT_DATA = 2;
     private final int STATUS_BAR_STYLE_DATA_VOICE = 3;
-    private final int STATUS_BAR_STYLE_EXTENDED = 4;
     private int mStyle = STATUS_BAR_STYLE_ANDROID_DEFAULT;
-    private DataEnabledSettingObserver mDataEnabledSettingObserver;
-    CarrierAppUtils.CARRIER carrier = CarrierAppUtils.getCarrierId();
 
     // TODO: Reduce number of vars passed in, if we have the NetworkController, probably don't
     // need listener lists anymore.
@@ -112,14 +103,7 @@ public class MobileSignalController extends SignalController<
         mNetworkNameSeparator = getStringIfExists(R.string.status_bar_network_name_separator);
         mNetworkNameDefault = getStringIfExists(
                 com.android.internal.R.string.lockscreen_carrier_default);
-        mIsDataSignalControlEnabled = mContext.getResources()
-                .getBoolean(R.bool.config_data_signal_control);
-        if (mIsDataSignalControlEnabled) {
-            mDataEnabledSettingObserver =
-                    new DataEnabledSettingObserver(new Handler(), context);
-            mLastState.isForbidden = mCurrentState.isForbidden =
-                  !(isMobileDataEnabled(mSubscriptionInfo.getSubscriptionId()));
-        }
+
         if (config.readIconsFromXml) {
             TelephonyIcons.readIconsFromXml(context);
             mDefaultIcons = !mConfig.showAtLeast3G ? TelephonyIcons.G : TelephonyIcons.THREE_G;
@@ -127,12 +111,7 @@ public class MobileSignalController extends SignalController<
             mapIconSets();
         }
 
-        if (carrier != null && (CarrierAppUtils.CARRIER.TELEPHONY_CARRIER_ONE
-                 == carrier)) {
-            mStyle = context.getResources().getInteger(R.integer.status_bar_style_extended);
-        } else {
-            mStyle = context.getResources().getInteger(R.integer.status_bar_style);
-        }
+        mStyle = context.getResources().getInteger(R.integer.status_bar_style);
 
         String networkName = info.getCarrierName() != null ? info.getCarrierName().toString()
                 : mNetworkNameDefault;
@@ -154,11 +133,6 @@ public class MobileSignalController extends SignalController<
 
     public int getDataContentDescription() {
         return getIcons().mDataContentDescription;
-    }
-
-     public void setForbiddenState(boolean isForbidden) {
-        mCurrentState.isForbidden = isForbidden;
-        notifyListenersIfNecessary();
     }
 
     public void setAirplaneMode(boolean airplaneMode) {
@@ -191,9 +165,6 @@ public class MobileSignalController extends SignalController<
                         | PhoneStateListener.LISTEN_DATA_CONNECTION_STATE
                         | PhoneStateListener.LISTEN_DATA_ACTIVITY
                         | PhoneStateListener.LISTEN_CARRIER_NETWORK_CHANGE);
-        if (mIsDataSignalControlEnabled) {
-            mDataEnabledSettingObserver.register();
-        }
     }
 
     /**
@@ -201,9 +172,6 @@ public class MobileSignalController extends SignalController<
      */
     public void unregisterListener() {
         mPhone.listen(mPhoneStateListener, 0);
-         if (mIsDataSignalControlEnabled) {
-             mDataEnabledSettingObserver.unregister();
-         }
     }
 
     /**
@@ -327,8 +295,7 @@ public class MobileSignalController extends SignalController<
                 activityIn, activityOut, dataActivityId, mobileActivityId,
                 icons.mStackedDataIcon, icons.mStackedVoiceIcon,
                 dataContentDescription, description, icons.mIsWide,
-                mSubscriptionInfo.getSubscriptionId(), getImsIconId(),
-                isImsRegisteredInAirplaneMode());
+                mSubscriptionInfo.getSubscriptionId());
 
         mCallbackHandler.post(new Runnable() {
             @Override
@@ -336,26 +303,6 @@ public class MobileSignalController extends SignalController<
                 mNetworkController.updateNetworkLabelView();
             }
         });
-    }
-
-    private boolean isImsRegisteredInAirplaneMode() {
-        return mStyle == STATUS_BAR_STYLE_EXTENDED
-                && mPhone != null && mPhone.isImsRegistered()
-                && mCurrentState.airplaneMode;
-    }
-
-    private int getImsIconId() {
-        if (mStyle == STATUS_BAR_STYLE_EXTENDED
-                && isImsRegisteredOnDataSim()) {
-            return R.drawable.ims_services_hd;
-        } else {
-            return 0;
-        }
-    }
-
-    private boolean isImsRegisteredOnDataSim() {
-        return mPhone != null && mPhone.isImsRegistered()
-                && mCurrentState.dataSim;
     }
 
     @Override
@@ -655,14 +602,10 @@ public class MobileSignalController extends SignalController<
         if (DEBUG) {
             Log.d(mTag, "singleSignalIcon:" + getResourceName(singleSignalIcon));
         }
-        if (mIsDataSignalControlEnabled) {
-            dataActivityId = (mCurrentState.dataConnected && slotId >= 0) ?
-                    TelephonyIcons.getDataActivity(slotId, mCurrentState.dataActivity) :
-                    getCustomStatusBarIcon(slotId);
-        } else {
-            dataActivityId = (mCurrentState.dataConnected && slotId >= 0) ?
-                    TelephonyIcons.getDataActivity(slotId, mCurrentState.dataActivity) : 0;
-        }
+
+        dataActivityId = (mCurrentState.dataConnected && slotId >= 0) ?
+                TelephonyIcons.getDataActivity(slotId, mCurrentState.dataActivity) : 0;
+
         // Convert the icon to unstacked if necessary.
         int unstackedSignalIcon = TelephonyIcons.convertMobileStrengthIcon(singleSignalIcon);
         if (DEBUG) {
@@ -719,24 +662,6 @@ public class MobileSignalController extends SignalController<
                 sbIcons, qsIcons, contentDesc, 0, 0, sbDiscState, qsDiscState, discContentDesc,
                 dataContentDesc, dataTypeIcon, false, qsDataTypeIcon,
                 singleSignalIcon, stackedDataIcon, stackedVoiceIcon, dataActivityId);
-       }
-
-    private boolean isMobileDataEnabled(int subId) {
-         return TelephonyManager.getDefault().getDataEnabled(subId);
-      }
-
-    private int getCustomStatusBarIcon(int slotId) {
-        int dataTypeIcon = 0 ;
-        if (!mCurrentState.dataConnected &&  mCurrentState.isForbidden)
-        {
-           // Show Forbidden icon incase both data is Disabled and
-           // disconnected
-           dataTypeIcon = TelephonyIcons.getForbiddenDataIcon(slotId);
-        } else  {
-           // Show greyed icon incase data is enabled and not preferred
-           dataTypeIcon = TelephonyIcons.getDataDisconnectedIcon(slotId);
-        }
-        return dataTypeIcon;
     }
 
     private int getSimSlotIndex() {
@@ -982,7 +907,6 @@ public class MobileSignalController extends SignalController<
         boolean airplaneMode;
         boolean carrierNetworkChangeMode;
         boolean isDefault;
-        boolean isForbidden;
         int dataActivity;
         int voiceLevel;
 
@@ -996,7 +920,6 @@ public class MobileSignalController extends SignalController<
             dataConnected = state.dataConnected;
             isDefault = state.isDefault;
             isEmergency = state.isEmergency;
-            isForbidden = state.isForbidden;
             airplaneMode = state.airplaneMode;
             carrierNetworkChangeMode = state.carrierNetworkChangeMode;
             dataActivity = state.dataActivity;
@@ -1013,7 +936,6 @@ public class MobileSignalController extends SignalController<
             builder.append("dataConnected=").append(dataConnected).append(',');
             builder.append("isDefault=").append(isDefault).append(',');
             builder.append("isEmergency=").append(isEmergency).append(',');
-            builder.append("isForbidden= ").append(isForbidden).append(',');
             builder.append("airplaneMode=").append(airplaneMode).append(',');
             builder.append("voiceLevel=").append(voiceLevel).append(',');
             builder.append("carrierNetworkChangeMode=").append(carrierNetworkChangeMode);
@@ -1027,39 +949,10 @@ public class MobileSignalController extends SignalController<
                     && ((MobileState) o).dataSim == dataSim
                     && ((MobileState) o).dataConnected == dataConnected
                     && ((MobileState) o).isEmergency == isEmergency
-                    && ((MobileState) o).isForbidden ==  isForbidden
                     && ((MobileState) o).airplaneMode == airplaneMode
                     && ((MobileState) o).carrierNetworkChangeMode == carrierNetworkChangeMode
                     && ((MobileState) o).voiceLevel == voiceLevel
                     && ((MobileState) o).isDefault == isDefault;
         }
     }
-    //Observer to moniter enabling and disabling of MobileData
-    private class DataEnabledSettingObserver extends ContentObserver {
-        ContentResolver mResolver;
-        public DataEnabledSettingObserver(Handler handler, Context context) {
-            super(handler);
-            mResolver = context.getContentResolver();
-        }
-
-        public void register() {
-            String contentUri;
-            if (TelephonyManager.getDefault().getSimCount() == 1) {
-                contentUri = Settings.Global.MOBILE_DATA;
-            } else {
-                contentUri = Settings.Global.MOBILE_DATA + mSubscriptionInfo.getSubscriptionId();
-            }
-            mResolver.registerContentObserver(Settings.Global.getUriFor(contentUri), false, this);
-        }
-
-        public void unregister() {
-            mResolver.unregisterContentObserver(this);
-        }
-
-        @Override
-        public void onChange(boolean selfChange) {
-            setForbiddenState(!isMobileDataEnabled(mSubscriptionInfo.getSubscriptionId()));
-        }
-    }
-
 }
