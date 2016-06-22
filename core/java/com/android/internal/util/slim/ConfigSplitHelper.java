@@ -64,6 +64,12 @@ public class ConfigSplitHelper {
                 }
             }
             if (counter == 3) {
+                actionConfig.setDoubleTapAction(configValue);
+                actionConfig.setDoubleTapActionDescription(
+                        AppHelper.getProperSummary(context, pm, settingsResources,
+                        configValue, values, entries));
+            }
+            if (counter == 4) {
                 actionConfig.setIcon(configValue);
                 actionConfigList.add(actionConfig);
                 //reset counter due that iteration of full config action is finished
@@ -89,6 +95,7 @@ public class ConfigSplitHelper {
                 finalConfig += actionConfig.getLongpressAction()
                     + ActionConstants.ACTION_DELIMITER;
             }
+            finalConfig += actionConfig.getDoubleTapAction() + ActionConstants.ACTION_DELIMITER;
             finalConfig += actionConfig.getIcon();
         }
 
